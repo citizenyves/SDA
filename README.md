@@ -17,12 +17,12 @@
 #### (2) Il faut bien choisir le type de la force de repulsion et d'attraction. Si vous choisissez 'Eades' comme repulsion vous êtes obligé à choisir 'Eades' comme attraction. Si vous choisissez 'FR' comme repulsion vous êtes obligé à choisir 'FR' comme attraction. Si vous choisissez 'RepulsionbyDegree' comme repulsion vous êtes obligé à choisir 'Normal' ou 'Linlog' comme attraction.
 
 ### 3) Exemple
-python main.py \</br>
---dotpath "/Users/taeyeon/PycharmProjects/sda_projet/Molecules/benzène.dot" \</br>
---savepath "/Users/taeyeon/PycharmProjects/sda_projet/pos_change/" \</br>
---octettree \</br>
---maxiter 300 \</br>
---repulsiontype "Eades" \</br>
---attractiontype "Eades" \</br>
---drwa \</br>
+python main.py </br>
+--dotpath "/Users/taeyeon/PycharmProjects/sda_projet/Molecules/benzène.dot"</br>
+--savepath "/Users/taeyeon/PycharmProjects/sda_projet/pos_change/"</br>
+--octettree </br>
+--maxiter 300 </br>
+--repulsiontype "Eades" </br>
+--attractiontype "Eades" </br>
+--drwa </br>
 --nombrenode 0</br>
