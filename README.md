@@ -25,5 +25,5 @@ python main.py </br>
 --maxiter 300 </br>
 --repulsiontype "Eades" </br>
 --attractiontype "Eades" </br>
---drwa </br>
+--draw </br>
 --nombrenode 0</br>
