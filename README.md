@@ -1,5 +1,6 @@
 # SDA
 2022 Projet de Structure des données avancées 
+KIM TAEYEON (12204842)
 
 ## 1. Exécution
 ### 1) Les options
