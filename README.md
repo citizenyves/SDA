@@ -3,7 +3,7 @@
 
 ## 1. Exécution
 ### 1) Les options
---dotpath : Si vous avez déjà une graphe sous forme de .dot, mettez le nom de chemin.
+--dotpath : Si vous avez déjà une graphe sous forme de .dot, mettez le nom de chemin.</br>
 --savepath : Mettez le nom de chemin où vous voulez sauvegarder des résultats (images).
 --octettree : Si vous voulez utilisez une structure d'octet tree, mettez cette option.
 --maxiter 300 : Mettez le nombre d'itérations (300 par défaut) 
