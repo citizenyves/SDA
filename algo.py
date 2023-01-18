@@ -19,7 +19,10 @@ class Algo:
         self.iter = iter
         self.octet = octet
 
-    def run(self, repulsiontype='Eades', attractiontype='Eades', draw=False, savepath=None):
+    def run(self,
+            repulsiontype='Eades', repulsioncons=10, repulsionideal=10,
+            attractiontype='Eades', attractioncons=100, attractionideal=0.1,
+            draw=False, savepath=None, memorycheck=False):
 
         # create force objects
         repulsion = Repulsion(type=repulsiontype)    # ["Eades", "FR", "linRepulsion"]
@@ -34,32 +37,38 @@ class Algo:
 
         # run
         for iter in tqdm(range(self.iter)):
-            if iter == 0 or iter == self.iter - 1:
-                memory_usage(iter, message='before iter 1 / dernier iter')
+            if iter == 0 and memorycheck:
+                memory_usage(iter, message='before iter 1')
+            if iter == self.iter - 1 and memorycheck:
+                memory_usage(iter, message='before dernier iter')
             iterbefore = time.time()
 
-            # Tree init
+            # init Tree
             minx, maxx, meanx = min([n.x for n in self.nodes]), max([n.x for n in self.nodes]), sum([abs(n.x) for n in self.nodes])/len(self.nodes)
             miny, maxy, meany = min([n.y for n in self.nodes]), max([n.y for n in self.nodes]), sum([abs(n.y) for n in self.nodes])/len(self.nodes)
             # Octet tree
             if self.octet:
                 minz, maxz, meanz = min([n.z for n in self.nodes]), max([n.z for n in self.nodes]), sum([abs(n.z) for n in self.nodes])/len(self.nodes)
                 width, length, height = maxx - minx, maxy - miny, maxz - minz
+                # figure = Space(cx, cy, cz, w, l, h)
                 figure = Space(minx + width / 2, miny + length / 2, minz + height / 2, width, length, height)
                 Tree = OctetTree(figure)
             # Quad tree
             else:
                 width, length = maxx - minx, maxy - miny
+                # figure = Region(cx, cy, w, h)
                 figure = Region(minx + width / 2, miny + length / 2, width, length)
                 Tree = QuadTree(figure)
 
-            # insert nodes into the Tree structure created
-            if iter == 0:
+
+            if iter == 0 and memorycheck:
                 memory_usage(iter, message='before insert')
+            # Inserer des noeuds dans la structure de Tree
             for n in self.nodes:
                 Tree.insert(n)
-            if iter == 0:
+            if iter == 0 and memorycheck:
                 memory_usage(iter, message='after insert')
+
             """
                 repulsion
                 1) Cette force s'applique sur tous les paires de noeuds
@@ -68,26 +77,28 @@ class Algo:
                    "Eades", "FR", et "linRepulsion"
             """
             comb = list(combinations(self.nodes, 2))
-            if iter == 0:
+            if iter == 0 and memorycheck:
                 memory_usage(iter, message='before Repusion')
             Repulsionbefore = time.time()
+
             if repulsiontype == "Eades":
                 combidx = list(combinations(list(range(0, len(self.nodes))), 2))
                 rpfactors = []
                 for cb, cbidx in zip(comb, combidx):
-                    rpfactor = repulsion.Eades(cb[0], cb[1])
+                    rpfactor = repulsion.Eades(cb[0], cb[1], constant=repulsioncons, octet=self.octet)
                     # s'il y a une arret on garde le facteur repulsif pour calculer la force attractive avec ceci.
                     if cbidx in self.edges_idx:
                         rpfactors.append(rpfactor)
             else:
                 for cb in comb:
                     if repulsiontype == "FR":
-                        repulsion.FR(cb[0], cb[1], ideal=0.01)
+                        repulsion.FR(cb[0], cb[1], ideal=repulsionideal, octet=self.octet)
                     elif repulsiontype == "linRepulsion":
-                        repulsion.RepulsionbyDegree(cb[0], cb[1], constant=0.00001)
+                        repulsion.RepulsionbyDegree(cb[0], cb[1], constant=repulsioncons, octet=self.octet)
+
             Repulsionafter = time.time()
             RepulsionTimeAnalyzer.append((Repulsionafter - Repulsionbefore))
-            if iter == 0:
+            if iter == 0 and memorycheck:
                 memory_usage(iter, message='after Repusion')
 
             """
@@ -96,31 +107,33 @@ class Algo:
                 2) Il y a quatre types de force repulsive
                    "Eades", "FR", "Normal", et "Linlog"
             """
-            # attractive
-            if iter == 0:
+            # force d'attraction
+            if iter == 0 and memorycheck:
                 memory_usage(iter, message='before Attraction')
             Attractionbefore = time.time()
+
             if repulsiontype == "Eades" and attractiontype == "Eades":
                 for pair, rpf in zip(self.edges_idx, rpfactors):
-                    attraction.Eades(self.nodes[pair[0]], self.nodes[pair[1]], rpfactor)
+                    attraction.Eades(self.nodes[pair[0]], self.nodes[pair[1]], repulsionfactor=rpfactor, ideal=attractionideal, constant=attractioncons, octet=self.octet)
             else:
                 for pair in self.edges_idx:
                     if attractiontype == "FR":
-                        attraction.FR(self.nodes[pair[0]], self.nodes[pair[1]])
+                        attraction.FR(self.nodes[pair[0]], self.nodes[pair[1]], ideal=attractionideal, octet=self.octet)
                     elif attractiontype in ["Normal", "Linlog"]:
-                        attraction.Normal(self.nodes[pair[0]], self.nodes[pair[1]])
+                        attraction.Normal(self.nodes[pair[0]], self.nodes[pair[1]], constant=attractioncons, octet=self.octet)
+
             Attractionafter = time.time()
             AttractionTimeAnalyzer.append((Attractionafter - Attractionbefore))
-            if iter == 0:
+            if iter == 0 and memorycheck:
                 memory_usage(iter, message='after Attraction')
 
             # gravité
             g = 0.0001
-            _ = gravity.gravity(Tree, g, globalcnt=0)
+            gravity.gravity(Tree, g)
 
             # Calcul d'accélaration et l'application des forces finales
             ApplyForcebefore = time.time()
-            AccelerationApply(self.nodes, self.octet)
+            AccelerationApply(self.nodes, self.octet, dt=0.001)
             ApplyForceafter = time.time()
             ApplyForceTimeAnalyzer.append((ApplyForceafter - ApplyForcebefore))
 
@@ -128,7 +141,10 @@ class Algo:
             IterTimeAnalyzer.append((iterafter - iterbefore))
 
             # drawing
-            pos = {n: (self.nodes[i].x, self.nodes[i].y, self.nodes[i].z) for n, i in zip(self.preG.nodes(), range(len(self.nodes)))}
+            if self.octet:
+                pos = {n: (self.nodes[i].x, self.nodes[i].y, self.nodes[i].z) for n, i in zip(self.preG.nodes(), range(len(self.nodes)))}
+            else:
+                pos = {n: (self.nodes[i].x, self.nodes[i].y) for n, i in zip(self.preG.nodes(), range(len(self.nodes)))}
 
             if draw:
                 # coordonnances
@@ -169,9 +185,16 @@ class Algo:
                 plt.savefig(f'{savepath}pos{iter}.png')
                 plt.close('all')
 
-            if iter == 0 or iter == self.iter - 1:
-                memory_usage(iter, message='after iter 1 / dernier iter')
+            if iter == 0 and memorycheck:
+                memory_usage(iter, message='after iter 1')
+            if iter == self.iter - 1 and memorycheck:
+                memory_usage(iter, message='after dernier iter')
 
+        """ return
+            1) Tree : Tree mis à jour
+            2) nouvelles positions des noeuds
+            3) TimeAnalyzers
+        """
         return Tree, [(n.x, n.y, n.z) for n in self.nodes] if self.octet else [(n.x, n.y) for n in self.nodes], \
                IterTimeAnalyzer, RepulsionTimeAnalyzer, AttractionTimeAnalyzer, ApplyForceTimeAnalyzer
 

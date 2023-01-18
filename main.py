@@ -8,13 +8,17 @@ from utils import memory_usage, Analyzer
 def main(G,
          preG,
          edges_idx,
-         dotpath,
          savepath,
          maxiter,
          octettree,
          draw,
          repulsiontype,
-         attractiontype
+         repulsioncons,
+         repulsionideal,
+         attractiontype,
+         attractioncons,
+         attractionideal,
+         memorycheck
          ):
     AlgoTimeAnalysis = Analyzer()
 
@@ -23,16 +27,23 @@ def main(G,
     algo = Algo(preG, G, edges_idx, iter=maxiter, octet=octettree)
 
     # run
-    memory_usage(iter, message='before Algo run')
+    if memorycheck:
+        memory_usage(iter, message='before Algo run')
     before = time.time()
     Tree, newpos, IterTimeAnalyzer, RepulsionTimeAnalyzer, AttractionTimeAnalyzer, ApplyForceTimeAnalyzer =\
         algo.run(repulsiontype=repulsiontype,
+                 repulsioncons=repulsioncons,
+                 repulsionideal=repulsionideal,
                  attractiontype=attractiontype,
+                 attractioncons=attractioncons,
+                 attractionideal=attractionideal,
                  draw=draw,
-                 savepath=savepath)
+                 savepath=savepath,
+                 memorycheck=memorycheck)
     after = time.time()
     AlgoTimeAnalysis.append((after - before))
-    memory_usage(iter, message='after Algo run')
+    if memorycheck:
+        memory_usage(iter, message='after Algo run')
 
     return Tree, newpos, AlgoTimeAnalysis, IterTimeAnalyzer, RepulsionTimeAnalyzer, AttractionTimeAnalyzer, ApplyForceTimeAnalyzer
 
@@ -45,24 +56,35 @@ if __name__ == "__main__":
     parser.add_argument('--savepath', default="/Users/taeyeon/PycharmProjects/sda_projet/pos_change/", help='Mettez le path pour sauvegarder des résultats.')
     parser.add_argument('--octettree', action='store_true', help='Pour utiliser une structure de OctetTree utilisez cette option, sinon QuadTree.')
     parser.add_argument('--maxiter', default=300, required=True, help='Mettez le nombre maximal d iteration.')
+
     parser.add_argument('--repulsiontype', choices=['Eades', 'FR', 'RepulsionbyDegree'], required=True, help='Mettez le type de la force de repulsive.')
-    # parser.add_argument('--')
+    parser.add_argument('--repulsioncons', default=10)
+    parser.add_argument('--repulsionideal', default=10, help='Si vous avez choisi FR')
     parser.add_argument('--attractiontype', choices=['Eades', 'FR', 'Normal', 'Linlog'], required=True, help='Mettez le type de la force de attractive.')
+    parser.add_argument('--attractioncons', default=100)
+    parser.add_argument('--attractionideal', default=0.1, help='Si vous avez choisi FR')
+
     parser.add_argument('--draw', action='store_true', help='Utilisez cette option pour tracer des graphes par chaque iter.')
     parser.add_argument('--nombrenode', default=0, help='Si vous n utiliserez pas dotpath et utiliserez une graphe que vous définissez.')
+    parser.add_argument('--memoryusage', action='store_true', help='Utilisez cette option pour constater l utilisation de mémoire')
 
     args = parser.parse_args()
 
     # print(args.target)
-    print(f"dotpath \t\t: {args.dotpath}")
-    print(f"dotpath \t\t: {args.savepath}")
-    print(f"octettree \t\t: {args.octettree}")
-    print(f"maxiter \t\t: {args.maxiter}")
-    print(f"repulsion type \t: {args.repulsiontype}")
-    print(f"attraction type : {args.attractiontype}")
-    print(f"drawing graphe \t: {args.draw}")
+    print(f"dotpath \t\t\t\t: {args.dotpath}")
+    print(f"dotpath \t\t\t\t: {args.savepath}")
+    print(f"octettree \t\t\t\t: {args.octettree}")
+    print(f"maxiter \t\t\t\t: {args.maxiter}")
+    print(f"repulsion type \t\t\t: {args.repulsiontype}")
+    print(f"repulsion constant \t\t: {args.repulsioncons}")
+    print(f"repulsion ideal length \t: {args.repulsionideal}")
+    print(f"attraction type \t\t: {args.attractiontype}")
+    print(f"attraction constant \t: {args.attractioncons}")
+    print(f"attraction ideal length : {args.attractionideal}")
+    print(f"drawing graphe \t\t\t: {args.draw}")
     if args.nombrenode:
-        print(f"nombre de nodes \t: {args.nombrenode}")
+        print(f"nombre de nodes \t\t: {args.nombrenode}")
+    print(f"memory check \t\t\t: {args.memoryusage}")
 
     assert int(args.maxiter) > 0, "Il faut mettre un chiffre supérieur de 0 comme maxiter !"
     # repulsion - attraction type check
@@ -74,7 +96,6 @@ if __name__ == "__main__":
     # Read it as a graph in a networkx form
     preG = nx.Graph(nx.nx_pydot.read_dot(args.dotpath))
     G = nx.Graph()
-    # G.add_nodes_from([nb for nb in nodes_dic.values()])
     if args.nombrenode:
         del preG
         del G
@@ -96,13 +117,17 @@ if __name__ == "__main__":
         main(G,
              preG,
              edges_idx,
-             dotpath=args.dotpath,
              savepath=args.savepath,
              maxiter=int(args.maxiter),
              octettree=args.octettree,
              draw=args.draw,
              repulsiontype=args.repulsiontype,
-             attractiontype=args.attractiontype
+             repulsioncons=args.repulsioncons,
+             repulsionideal=args.repulsionideal,
+             attractiontype=args.attractiontype,
+             attractioncons=args.attractioncons,
+             attractionideal=args.attractionideal,
+             memorycheck=args.memoryusage
             )
 
     sys.stderr.write("Total cost : " + str(AlgoTimeAnalysis.get_total_cost()) + "\n\n")
@@ -118,3 +143,14 @@ if __name__ == "__main__":
 
     sys.stderr.write("ApplyForce cost : " + str(ApplyForceTimeAnalyzer.get_total_cost()) + "\n")
     sys.stderr.write("ApplyForce Average cost : " + str(ApplyForceTimeAnalyzer.get_average_cost()) + "\n")
+
+    # créer un fichier .txt contenant les nouvelles positions finales des noeuds
+    f = open('/Users/taeyeon/PycharmProjects/sda_projet/newpos.txt', 'w')
+    f.write(f'repulsion : {args.repulsiontype}\n')
+    f.write(f'attraction : {args.attractiontype}\n\n')
+    f.write('Nouvelles postions des noeuds (x, y, z)\n')
+    f.write('----------------------------------------------------\n')
+    for node, pos in zip(preG.nodes(), newpos):
+        line = f'Node {node} : {pos}\n'
+        f.write(line)
+    f.close()

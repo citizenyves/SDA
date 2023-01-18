@@ -36,7 +36,7 @@ class Node:
     def __init__(self, octet=True):
         self.x, self.y = 0.0, 0.0
         self.dx, self.dy = 0.0, 0.0
-        if oct:
+        if octet:
             self.z = 0.0
             self.dz = 0.0
         self.mass = 0.0 # le nombre de noeuds qui sont liés + 1
@@ -56,7 +56,7 @@ class Force:
                 factor = constant / distance
             elif type == "FR":
                 factor = ideal**2 / distance # constant = ideal spring length
-            elif type == "linRepulsion":
+            elif type == "RepulsionbyDegree":
                 factor = constant * n1.mass * n2.mass / distance
             n1.dx += xDist * factor
             n1.dy += yDist * factor
@@ -101,14 +101,13 @@ class Repulsion(Force):
         constant = repulsion constant
     """
     # Eades
-    def Eades(self, n1, n2, constant=10):
+    def Eades(self, n1, n2, constant=10, octet=False):
         # self.type = "Eades"
         xDist = n1.x - n2.x
         yDist = n1.y - n2.y
         zDist = 0
-        if n1.z and n2.z:
+        if octet:
             zDist = n1.z - n2.z
-        if zDist:
             distance = xDist * xDist + yDist * yDist + zDist * zDist  # Distance squared
         else:
             distance = xDist * xDist + yDist * yDist  # Distance squared
@@ -118,14 +117,13 @@ class Repulsion(Force):
         return repulsionfactor
 
     # Fruchterman & Reingold
-    def FR(self, n1, n2, ideal=10):
+    def FR(self, n1, n2, ideal=10, octet=False):
         # self.type = "FR"
         xDist = n1.x - n2.x
         yDist = n1.y - n2.y
         zDist = 0
-        if n1.z and n2.z:
+        if octet:
             zDist = n1.z - n2.z
-        if zDist:
             distance = sqrt(xDist * xDist + yDist * yDist + zDist * zDist)
         else:
             distance = sqrt(xDist * xDist + yDist * yDist)
@@ -133,14 +131,13 @@ class Repulsion(Force):
         self.Repulsion_movement(distance, self.type, n1, n2, xDist, yDist, zDist=zDist, ideal=ideal)
 
     # linRepulsion dans Force Atlas
-    def RepulsionbyDegree(self, n1, n2, constant=10):
+    def RepulsionbyDegree(self, n1, n2, constant=10, octet=False):
         # self.type = "linRepulsion"
         xDist = n1.x - n2.x
         yDist = n1.y - n2.y
         zDist = 0
-        if n1.z and n2.z:
+        if octet:
             zDist = n1.z - n2.z
-        if zDist:
             distance = xDist * xDist + yDist * yDist + zDist * zDist  # Distance squared
         else:
             distance = xDist * xDist + yDist * yDist  # Distance squared
@@ -153,42 +150,39 @@ class Attraction(Force):
     ideal = ideal spring length
     constant = attraction constant
     """
-    def Eades(self, n1, n2, repulsionfactor=0, ideal=0.1, constant=100):
+    def Eades(self, n1, n2, repulsionfactor=0, ideal=0.1, constant=100, octet=False):
         # self.type = "Eades"
         xDist = n1.x - n2.x
         yDist = n1.y - n2.y
         zDist = 0
-        if n1.z and n2.z:
+        if octet:
             zDist = n1.z - n2.z
-        if zDist:
             distance = sqrt(xDist * xDist + yDist * yDist + zDist * zDist)  # Distance squared
         else:
             distance = sqrt(xDist * xDist + yDist * yDist)  # Distance squared
         # calcule des mouvements
         self.Attraction_movement(distance, self.type, n1, n2, xDist, yDist, zDist=zDist, ideal=ideal, constant=constant, repulsionfactor=repulsionfactor)
 
-    def FR(self, n1, n2, ideal=0.1):
+    def FR(self, n1, n2, ideal=0.1, octet=False):
         # self.type = "FR"
         xDist = n1.x - n2.x
         yDist = n1.y - n2.y
         zDist = 0
-        if n1.z and n2.z:
+        if octet:
             zDist = n1.z - n2.z
-        if zDist:
             distance = xDist * xDist + yDist * yDist + zDist * zDist  # Distance squared
         else:
             distance = xDist * xDist + yDist * yDist  # Distance squared
         # calcule des mouvements
         self.Attraction_movement(distance, self.type, n1, n2, xDist, yDist, zDist=zDist, ideal=ideal)
 
-    def Normal(self, n1, n2, constant=100):
+    def Normal(self, n1, n2, constant=100, octet=False):
         # self.type = type
         xDist = n1.x - n2.x
         yDist = n1.y - n2.y
         zDist = 0
-        if n1.z and n2.z:
+        if octet:
             zDist = n1.z - n2.z
-        if zDist:
             distance = xDist * xDist + yDist * yDist + zDist * zDist  # Distance squared
         else:
             distance = xDist * xDist + yDist * yDist  # Distance squared
@@ -208,6 +202,7 @@ class Gravity(Force):
             if not isinstance(sous, QuadTree) or isinstance(sous, OctetTree):
                 if sous is not None:
                     nonclusters.append(sous)
+            # le critère de la création d'un cluster.
             elif (isinstance(sous, QuadTree) and sous.nb_noeud >= 3) or (isinstance(sous, OctetTree) and sous.nb_noeud >= 4):
                 clusters.append(sous)
 
@@ -250,15 +245,13 @@ class Gravity(Force):
                     self.Gravity_movement(distance, n, xDist, yDist, zDist=zDist, constant=g)
                     globalcnt += 1
 
-        # recursif
+        # recursivement
         for i, sous in enumerate(sousregion):
             try:
                 Tree = sous
                 self.gravity(Tree, g)
             except:
                 None
-
-        return globalcnt
 
     def gravity_simple(self, center, n, g):
         xDist = n.x - center[0]
@@ -298,6 +291,7 @@ def divisionline2D(ax, Tree):
             ax.axvline(sous.figure.cx, 0.0, 1.0, color='gray', linewidth=0.5)
             try:
                 Tree = sous
+                # tracer les lignes récursivement jusqu'à le dernier arbre
                 divisionline2D(ax, Tree)
             except:
                 None
@@ -312,6 +306,7 @@ def TreeStructureDraw():
     # non implémenté
     return None
 
+#  J'ai ramène ces codes sur internet.
 def memory_usage(iter, message: str = 'debug'):
     # current process RAM usage
     p = psutil.Process()
